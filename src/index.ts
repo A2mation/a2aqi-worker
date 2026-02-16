@@ -22,7 +22,7 @@ const worker = new Worker(
 
         const hourStart = roundToHour(timestamp);
         const dayStart = roundToDay(timestamp);
-
+       
 
         const incFields: Record<string, number> = { count: 1 }
         const minFields: Record<string, number> = {};
@@ -66,12 +66,12 @@ const worker = new Worker(
             updates: [
                 {
                     q: {
-                        deviceId,
+                        deviceId: { $oid: deviceId },
                         hourStart: { $date: hourStart.toISOString() }
                     },
                     u: {
                         $setOnInsert: {
-                            deviceId,
+                            deviceId: { $oid: deviceId },
                             hourStart: { $date: hourStart.toISOString() },
                             createdAt: { $date: new Date().toISOString() },
                         },
@@ -93,18 +93,18 @@ const worker = new Worker(
         // -----------------------------
         // DAILY Aggregation
         // -----------------------------
-        
+
         await prisma.$runCommandRaw({
             update: "DailyAggregateReading",
             updates: [
                 {
                     q: {
-                        deviceId, 
+                        deviceId: { $oid: deviceId },
                         dayStart: { $date: dayStart.toISOString() },
                     },
                     u: {
                         $setOnInsert: {
-                            deviceId,
+                            deviceId: { $oid: deviceId },
                             dayStart: { $date: dayStart.toISOString() },
                             createdAt: { $date: new Date().toISOString() },
                         },

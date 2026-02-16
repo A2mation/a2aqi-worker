@@ -26,7 +26,7 @@ export async function storeRawSensorReading(data: {
     temperature?: number;
     humidity?: number;
 }) {
-    console.log(data)
+    // console.log(data)
 
     const measuredAt = data.measuredAt ? new Date(data.measuredAt) : new Date();
 

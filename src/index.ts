@@ -6,6 +6,7 @@ import { connection } from "./libs/redis";
 import { roundToDay } from "./utils/roundToDay";
 import { roundToHour } from "./utils/roundToHour";
 import { SensorJob } from "../types/sensor";
+import { storeRawSensorReading } from "./services/db/sensorReadings";
 
 
 
@@ -16,6 +17,8 @@ const worker = new Worker(
 
         const deviceId = data.deviceId;
         const timestamp = new Date(data.measuredAt);
+
+        await storeRawSensorReading(data);
 
         const hourStart = roundToHour(timestamp);
         const dayStart = roundToDay(timestamp);
@@ -96,7 +99,8 @@ const worker = new Worker(
             updates: [
                 {
                     q: {
-                        deviceId, dayStart
+                        deviceId, 
+                        dayStart: { $date: dayStart.toISOString() },
                     },
                     u: {
                         $setOnInsert: {

@@ -113,6 +113,8 @@ model Device {
   sensorReadings          SensorReading[]
   hourlyAggregateReadings HourlyAggregateReading[]
   dailyAggregateReadings  DailyAggregateReading[]
+
+  @@index([id])
 }
 
 model AQIReading {
@@ -188,7 +190,8 @@ model SensorReading {
 
   createdAt DateTime @default(now())
 
-  @@index([deviceId, measuredAt], name: "deviceId_measuredAt")
+  @@unique([deviceId, measuredAt], name: "deviceId_measuredAt")
+  @@index([deviceId])
 }
 
 model HourlyAggregateReading {
@@ -278,6 +281,7 @@ model HourlyAggregateReading {
 
   createdAt DateTime @default(now())
 
+  // @@unique([deviceId, hourStart], name: "deviceId_hourStart")
   @@index([hourStart])
   @@index([deviceId, hourStart])
 }
@@ -369,6 +373,7 @@ model DailyAggregateReading {
 
   createdAt DateTime @default(now())
 
+  // @@unique([deviceId, dayStart], name: "deviceId_dayStart")
   @@index([dayStart])
   @@index([deviceId, dayStart])
 }

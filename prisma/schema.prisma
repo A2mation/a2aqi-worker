@@ -38,6 +38,38 @@ enum DeviceStatus {
   ASSIGNED
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum DeviceSubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ExportFormat {
+  CSV
+  XLSX
+  PDF
+  JSON
+}
+
 //////////////////////////////////////////////////////
 // USER & ADMIN
 //////////////////////////////////////////////////////
@@ -59,6 +91,11 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   devices   Device[]
+
+  deviceSubscriptions DeviceSubscription[]
+  payments            Payment[]
+  couponRedemptions   CouponRedemption[]
+  exportLogs          ExportLog[]
 }
 
 model Admin {
@@ -114,7 +151,11 @@ model Device {
   hourlyAggregateReadings HourlyAggregateReading[]
   dailyAggregateReadings  DailyAggregateReading[]
 
-  @@index([id])
+  payments            Payment[]
+  couponRedemptions   CouponRedemption[]
+  deviceSubscriptions DeviceSubscription[]
+
+  exportLogs ExportLog[]
 }
 
 model AQIReading {
@@ -482,4 +523,160 @@ model SiteStats {
   totalViews Int      @default(0)
   dailyViews Int      @default(0)
   lastReset  DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////
+// Payment, Subscription and Coupons 
+//////////////////////////////////////////////////////
+
+model DeviceSubscription {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  deviceId String @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  price Float
+
+  startDate DateTime
+  endDate   DateTime
+
+  status    DeviceSubscriptionStatus @default(ACTIVE)
+  autoRenew Boolean                  @default(false)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deviceId])
+  @@index([userId])
+  @@index([endDate])
+  @@index([status])
+}
+
+model Coupon {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  code        String  @unique
+  description String?
+
+  discountType  DiscountType
+  discountValue Float
+
+  maxUsage        Int?
+  usedCount       Int  @default(0)
+  maxUsagePerUser Int?
+
+  validFrom  DateTime
+  validUntil DateTime
+
+  isActive Boolean @default(true)
+
+  payments          Payment[]
+  couponRedemptions CouponRedemption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CouponRedemption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  couponId String @db.ObjectId
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceId String @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  paymentId String  @unique @db.ObjectId
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  discountApplied Float
+
+  createdAt DateTime @default(now())
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([deviceId])
+}
+
+model Payment {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceId String @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  deviceSubscriptionId String?             @db.ObjectId
+  deviceSubscription   DeviceSubscription? @relation(fields: [deviceSubscriptionId], references: [id], onDelete: SetNull)
+
+  couponId String? @db.ObjectId
+  coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  amount         Float
+  discountAmount Float?
+  finalAmount    Float
+
+  currency String @default("INR")
+
+  status PaymentStatus @default(PENDING)
+
+  razorpayOrderId   String  @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+
+  metadata Json?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  couponRedemption CouponRedemption?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([deviceSubscriptionId])
+  @@index([couponId])
+}
+
+//////////////////////////////////////////////////////
+// Export Logs
+//////////////////////////////////////////////////////
+model ExportLog {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceId String? @db.ObjectId
+  device   Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  format ExportFormat
+  status ExportStatus @default(PENDING)
+
+  fromDate DateTime?
+  toDate   DateTime?
+
+  fileUrl  String?
+  fileSize Float?
+
+  errorMessage String?
+
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+
+  metadata Json?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([requestedAt])
 }

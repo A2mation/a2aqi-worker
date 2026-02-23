@@ -131,6 +131,12 @@ worker.on("completed", (job) => {
     console.log(`✅ Job completed: ${job.id}`);
 });
 
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received...");
+  await worker.close();
+  process.exit(0);
+});
+
 worker.on("failed", (job, err) => {
     console.error(`❌ Job failed: ${job?.id}`, err);
 });

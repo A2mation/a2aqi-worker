@@ -56,6 +56,12 @@ enum DeviceSubscriptionStatus {
   SUSPENDED
 }
 
+enum SubscriptionDuration {
+  THREE_MONTHS // 3 Months
+  SIX_MONTHS // 6 Months
+  TWELVE_MONTHS // 12 Months
+}
+
 enum ExportStatus {
   PENDING
   PROCESSING
@@ -68,6 +74,12 @@ enum ExportFormat {
   XLSX
   PDF
   JSON
+}
+
+enum CalibrationStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 //////////////////////////////////////////////////////
@@ -104,6 +116,8 @@ model Admin {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+
+  calibrations Calibration[]
 }
 
 //////////////////////////////////////////////////////
@@ -111,18 +125,18 @@ model Admin {
 //////////////////////////////////////////////////////
 
 model DeviceModel {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
-  name         String @unique // ex: "PurpleAir PA-II"
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  name         String  @unique // ex: "PurpleAir PA-II"
+  description  String
   manufacturer String
+  isActive     Boolean @default(true)
 
-  isActive Boolean @default(true)
+  pricingPlans PricingPlan[]
 
-  description String
+  devices Device[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
-
-  devices Device[]
 }
 
 model Device {
@@ -156,6 +170,8 @@ model Device {
   deviceSubscriptions DeviceSubscription[]
 
   exportLogs ExportLog[]
+
+  calibrations Calibration[]
 }
 
 model AQIReading {
@@ -419,6 +435,33 @@ model DailyAggregateReading {
   @@index([deviceId, dayStart])
 }
 
+model Calibration {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  deviceId String @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  performedById String? @db.ObjectId
+  performedBy   Admin?  @relation(fields: [performedById], references: [id])
+
+  // Calibration lifecycle
+  status         CalibrationStatus @default(PENDING)
+  expiresAt      DateTime
+  acknowledgedAt DateTime?
+
+  previousValues Json?
+  newValues      Json
+
+  reason String?
+
+  effectiveFrom DateTime
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([deviceId, status])
+  @@index([expiresAt])
+}
+
 //////////////////////////////////////////////////////
 // BLOG SYSTEM
 //////////////////////////////////////////////////////
@@ -529,6 +572,24 @@ model SiteStats {
 // Payment, Subscription and Coupons 
 //////////////////////////////////////////////////////
 
+model PricingPlan {
+  id      String      @id @default(auto()) @map("_id") @db.ObjectId
+  modelId String      @db.ObjectId
+  model   DeviceModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  duration SubscriptionDuration
+  price    Float // e.g., 2999.00
+  currency String               @default("INR")
+
+  // Admin Toggle
+  isEnabled Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([modelId, duration]) // One price per duration per model
+}
+
 model DeviceSubscription {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -538,10 +599,16 @@ model DeviceSubscription {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  price Float
-
   startDate DateTime
   endDate   DateTime
+
+  // Track what was paid
+  paidAmount Float
+  planType   SubscriptionDuration
+
+  // For Admin Tracking
+  adminModified Boolean @default(false)
+  notes         String? // Admin can leave a note why they modified it
 
   status    DeviceSubscriptionStatus @default(ACTIVE)
   autoRenew Boolean                  @default(false)
@@ -630,7 +697,7 @@ model Payment {
   status PaymentStatus @default(PENDING)
 
   razorpayOrderId   String  @unique
-  razorpayPaymentId String?
+  razorpayPaymentId String? @unique
   razorpaySignature String?
 
   metadata Json?

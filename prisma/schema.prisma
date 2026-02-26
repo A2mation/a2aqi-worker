@@ -172,6 +172,8 @@ model Device {
   exportLogs ExportLog[]
 
   calibrations Calibration[]
+
+  latestSensorReadings latestSensorReading[]
 }
 
 model AQIReading {
@@ -215,6 +217,39 @@ model AQIReading {
   @@index([location, measuredAt])
 }
 
+model latestSensorReading {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  deviceId String @unique @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  // Pollution Data
+  aqi     Float?
+  pm10    Float?
+  pm25    Float?
+  so2     Float?
+  no2     Float?
+  co2     Float?
+  co      Float?
+  o3      Float?
+  noise   Float?
+  pm1     Float?
+  tvoc    Float?
+  smoke   Float?
+  methane Float?
+  h2      Float?
+  ammonia Float?
+  h2s     Float?
+
+  // Weather Data
+  temperature Float? // °C
+  humidity    Float? // %
+
+  measuredAt DateTime
+
+  updatedAt DateTime @updatedAt
+}
+
 model SensorReading {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -247,8 +282,7 @@ model SensorReading {
 
   createdAt DateTime @default(now())
 
-  @@unique([deviceId, measuredAt], name: "deviceId_measuredAt")
-  @@index([deviceId])
+  @@unique([deviceId, measuredAt(sort: Desc)], name: "deviceId_measuredAt")
 }
 
 model HourlyAggregateReading {

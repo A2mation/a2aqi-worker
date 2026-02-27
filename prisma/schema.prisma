@@ -38,6 +38,11 @@ enum DeviceStatus {
   ASSIGNED
 }
 
+enum DeviceType {
+  INDOOR
+  OUTDOOR
+}
+
 enum DiscountType {
   PERCENTAGE
   FIXED
@@ -140,11 +145,13 @@ model DeviceModel {
 }
 
 model Device {
-  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
   name     String?
-  serialNo String  @unique
-  isActive Boolean @default(true)
+  serialNo String     @unique
+  isActive Boolean    @default(true)
   apiKey   String
+  type     DeviceType @default(OUTDOOR)
+  loaction String?
 
   lat Float?
   lng Float?

@@ -180,7 +180,7 @@ model Device {
 
   calibrations Calibration[]
 
-  latestSensorReadings latestSensorReading[]
+  latestSensorReadings latestSensorReading?
 }
 
 model AQIReading {
@@ -231,7 +231,7 @@ model latestSensorReading {
   device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   // Pollution Data
-  aqi     Float?
+  aqi     Float
   pm10    Float?
   pm25    Float?
   so2     Float?
@@ -264,7 +264,7 @@ model SensorReading {
   device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   // Pollution Data
-  aqi     Float?
+  aqi     Float
   pm10    Float?
   pm25    Float?
   so2     Float?
@@ -304,9 +304,9 @@ model HourlyAggregateReading {
   count Int
 
   // Pollution aggregates
-  sumAqi Float?
-  minAqi Float?
-  maxAqi Float?
+  sumAqi Float
+  minAqi Float
+  maxAqi Float
 
   sumPm10 Float?
   minPm10 Float?
@@ -396,9 +396,9 @@ model DailyAggregateReading {
   count Int
 
   // Pollution aggregates
-  sumAqi Float?
-  minAqi Float?
-  maxAqi Float?
+  sumAqi Float
+  minAqi Float
+  maxAqi Float
 
   sumPm10 Float?
   minPm10 Float?

@@ -4,7 +4,7 @@ export async function storeRawSensorReading(data: {
     deviceId: string
     measuredAt?: Date
 
-    aqi?: number
+    aqi: number
     pm10?: number
     pm25?: number
     so2?: number
@@ -32,7 +32,7 @@ export async function storeRawSensorReading(data: {
         deviceId: data.deviceId,
         measuredAt,
 
-        aqi: data.aqi ?? null,
+        aqi: data.aqi ,
         pm10: data.pm10 ?? null,
         pm25: data.pm25 ?? null,
         so2: data.so2 ?? null,

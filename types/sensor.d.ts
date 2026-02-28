@@ -1,7 +1,7 @@
 export type SensorJob = {
     deviceId: string;
     measuredAt: Date;
-    aqi?: number;
+    aqi: number;
     pm10?: number;
     pm25?: number;
     so2?: number;

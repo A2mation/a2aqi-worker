@@ -87,6 +87,31 @@ enum CalibrationStatus {
   FAILED
 }
 
+enum InvoiceStatus {
+  GENERATED
+  PAID
+  VOID
+  REFUNDED
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+  WEBHOOK
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  ADMIN_OVERRIDE
+  PAYMENT_FAILED
+  PAYMENT_SUCCESS
+  REFUND
+}
+
 //////////////////////////////////////////////////////
 // USER & ADMIN
 //////////////////////////////////////////////////////
@@ -113,6 +138,7 @@ model User {
   payments            Payment[]
   couponRedemptions   CouponRedemption[]
   exportLogs          ExportLog[]
+  invoices            Invoice[]
 }
 
 model Admin {
@@ -656,8 +682,9 @@ model DeviceSubscription {
 
   payments Payment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  invoices  Invoice[]
 
   @@index([deviceId])
   @@index([userId])
@@ -748,11 +775,68 @@ model Payment {
   updatedAt DateTime  @updatedAt
 
   couponRedemption CouponRedemption?
+  invoice          Invoice?
 
   @@index([userId])
   @@index([deviceId])
   @@index([deviceSubscriptionId])
   @@index([couponId])
+}
+
+model Invoice {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  invoiceNumber String @unique
+  userId        String @db.ObjectId
+  user          User   @relation(fields: [userId], references: [id])
+
+  paymentId String  @unique @db.ObjectId
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  deviceSubscriptionId String?             @db.ObjectId
+  deviceSubscription   DeviceSubscription? @relation(fields: [deviceSubscriptionId], references: [id])
+
+  subtotal    Float
+  taxAmount   Float
+  totalAmount Float
+
+  currency String @default("INR")
+
+  billingName    String?
+  billingEmail   String?
+  billingAddress String?
+  gstNumber      String?
+
+  s3Key String?
+
+  status InvoiceStatus @default(GENERATED)
+
+  issuedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  entityType String
+  entityId   String
+
+  action AuditAction
+
+  actorId   String
+  actorType AuditActorType
+
+  oldData Json?
+  newData Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
 
 //////////////////////////////////////////////////////

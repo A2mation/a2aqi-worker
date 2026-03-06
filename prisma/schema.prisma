@@ -105,10 +105,21 @@ enum AuditAction {
   CREATE
   UPDATE
   DELETE
-  STATUS_CHANGE
+
   ADMIN_OVERRIDE
-  PAYMENT_FAILED
+
+  PAYMENT_CREATED
   PAYMENT_SUCCESS
+  PAYMENT_FAILED
+
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_CANCELLED
+
+  COUPON_APPLIED
+  COUPON_REVOKED
+
+  INVOICE_GENERATED
   REFUND
 }
 
@@ -651,8 +662,9 @@ model PricingPlan {
   // Admin Toggle
   isEnabled Boolean @default(true)
 
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+  payments  Payment[]
 
   @@unique([modelId, duration]) // One price per duration per model
 }
@@ -750,6 +762,9 @@ model Payment {
   deviceId String @db.ObjectId
   device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
+  pricingPlanId String      @db.ObjectId
+  pricingPlan   PricingPlan @relation(fields: [pricingPlanId], references: [id])
+
   deviceSubscriptionId String?             @db.ObjectId
   deviceSubscription   DeviceSubscription? @relation(fields: [deviceSubscriptionId], references: [id], onDelete: SetNull)
 
@@ -780,6 +795,7 @@ model Payment {
   @@index([userId])
   @@index([deviceId])
   @@index([deviceSubscriptionId])
+  @@index([pricingPlanId])
   @@index([couponId])
 }
 
@@ -837,6 +853,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([actorId])
 }
 
 //////////////////////////////////////////////////////

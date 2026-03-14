@@ -33,6 +33,14 @@ enum AccountType {
   ORGANIZATION
 }
 
+enum AddressType {
+  HOME
+  WORK
+  SHIPPING
+  BILLING
+  OTHER
+}
+
 enum DeviceStatus {
   UNASSIGNED
   ASSIGNED
@@ -140,17 +148,48 @@ model User {
   sensorId         String?
   accountType      AccountType @default(PERSONAL)
   organizationName String?
+  gstNumber        String?
 
   comments  Comment[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   devices   Device[]
 
+  billingAddressId String?   @db.ObjectId
+  billingAddress   Address?  @relation("PrimaryBillingAddress", fields: [billingAddressId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  addresses        Address[] @relation("UserAddresses")
+
   deviceSubscriptions DeviceSubscription[]
   payments            Payment[]
   couponRedemptions   CouponRedemption[]
   exportLogs          ExportLog[]
   invoices            Invoice[]
+}
+
+model Address {
+  id   String      @id @default(auto()) @map("_id") @db.ObjectId
+  type AddressType @default(HOME)
+
+  name        String?
+  email       String?
+  phoneNumber String?
+
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String  @default("India")
+  isDefault Boolean @default(false)
+
+  userId String @db.ObjectId
+  user   User   @relation("UserAddresses", fields: [userId], references: [id])
+
+  primaryBillingFor User[] @relation("PrimaryBillingAddress")
+
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Admin {
@@ -219,6 +258,8 @@ model Device {
   calibrations Calibration[]
 
   latestSensorReadings latestSensorReading?
+
+  @@index([lat, lng])
 }
 
 model AQIReading {
@@ -718,7 +759,7 @@ model Coupon {
   usedCount       Int  @default(0)
   maxUsagePerUser Int?
 
-  validFrom  DateTime
+  validFrom  DateTime @default(now())
   validUntil DateTime
 
   isActive Boolean @default(true)
@@ -781,7 +822,7 @@ model Payment {
   status PaymentStatus @default(PENDING)
 
   razorpayOrderId   String  @unique
-  razorpayPaymentId String? @unique
+  razorpayPaymentId String?
   razorpaySignature String?
 
   metadata Json?
@@ -813,11 +854,17 @@ model Invoice {
   deviceSubscriptionId String?             @db.ObjectId
   deviceSubscription   DeviceSubscription? @relation(fields: [deviceSubscriptionId], references: [id])
 
+  addressId String  @db.ObjectId
+  address   Address @relation(fields: [addressId], references: [id])
+
   subtotal    Float
   taxAmount   Float
   totalAmount Float
 
   currency String @default("INR")
+
+  seriesValue   Int    @default(0)
+  financialYear String
 
   billingName    String?
   billingEmail   String?
@@ -826,7 +873,7 @@ model Invoice {
 
   s3Key String?
 
-  status InvoiceStatus @default(GENERATED)
+  status InvoiceStatus @default(VOID)
 
   issuedAt DateTime @default(now())
 
@@ -849,6 +896,9 @@ model AuditLog {
 
   oldData Json?
   newData Json?
+
+  ip    String?
+  route String?
 
   createdAt DateTime @default(now())
 

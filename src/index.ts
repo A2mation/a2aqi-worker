@@ -32,9 +32,9 @@ const worker = new Worker(
             if (value === undefined) {
                 return;
             }
-            incFields[`sum${key}`] = value;
-            minFields[`min${key}`] = value;
-            maxFields[`max${key}`] = value;
+            incFields[`sum${key}`] = Math.round(value);
+            minFields[`min${key}`] = Math.round(value);
+            maxFields[`max${key}`] = Math.round(value);
         }
 
         addField(data.aqi, "Aqi");

@@ -132,8 +132,25 @@ enum AuditAction {
   REFUND
 }
 
+enum MonitorStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+  SUSPENDED
+  PENDING
+  REJECTED
+  DELETED
+}
+
+enum MonitorTag {
+  PCB
+  MUNICIPALITY
+  CORPORATION
+  PRIVATE
+}
+
 //////////////////////////////////////////////////////
-// USER & ADMIN
+// USER & ADMIN & Monitor
 //////////////////////////////////////////////////////
 
 model User {
@@ -202,6 +219,20 @@ model Admin {
   calibrations Calibration[]
 }
 
+model Monitor {
+  id       String        @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  email    String        @unique
+  password String
+  status   MonitorStatus
+  tag      MonitorTag
+
+  devices MonitorDevice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 //////////////////////////////////////////////////////
 // AQI TABLES
 //////////////////////////////////////////////////////
@@ -245,6 +276,8 @@ model Device {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  monitors MonitorDevice[]
+
   sensorReadings          SensorReading[]
   hourlyAggregateReadings HourlyAggregateReading[]
   dailyAggregateReadings  DailyAggregateReading[]
@@ -260,6 +293,25 @@ model Device {
   latestSensorReadings latestSensorReading?
 
   @@index([lat, lng])
+}
+
+model MonitorDevice {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  monitorId String  @db.ObjectId
+  monitor   Monitor @relation(fields: [monitorId], references: [id])
+
+  deviceId String @db.ObjectId
+  device   Device @relation(fields: [deviceId], references: [id])
+
+  assignedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([monitorId, deviceId])
+  @@index([monitorId])
+  @@index([deviceId])
 }
 
 model AQIReading {
@@ -714,7 +766,7 @@ model PricingPlan {
 model DeviceSubscription {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  deviceId String @db.ObjectId
+  deviceId String @unique @db.ObjectId
   device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   userId String @db.ObjectId
@@ -740,7 +792,6 @@ model DeviceSubscription {
   updatedAt DateTime  @updatedAt
   invoices  Invoice[]
 
-  @@index([deviceId])
   @@index([userId])
   @@index([endDate])
   @@index([status])

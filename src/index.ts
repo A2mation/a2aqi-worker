@@ -22,7 +22,7 @@ const worker = new Worker(
 
         const hourStart = roundToHour(timestamp);
         const dayStart = roundToDay(timestamp);
-       
+
 
         const incFields: Record<string, number> = { count: 1 }
         const minFields: Record<string, number> = {};
@@ -37,26 +37,21 @@ const worker = new Worker(
             maxFields[`max${key}`] = Math.round(value);
         }
 
-        addField(data.aqi, "Aqi");
-        addField(data.pm10, "Pm10");
-        addField(data.pm25, "Pm25");
-        addField(data.so2, "So2");
-        addField(data.no2, "No2");
-        addField(data.co2, "Co2");
-        addField(data.co, "Co");
-        addField(data.o3, "O3");
-        addField(data.noise, "Noise");
-        addField(data.pm1, "PM1");
-        addField(data.tvoc, "Tvoc");
-        addField(data.smoke, "Smoke");
-        addField(data.methane, "Methane");
-        addField(data.h2, "H2");
-        addField(data.ammonia, "Ammonia");
-        addField(data.h2s, "H2s");
+        for (const [key, value] of Object.entries(data)) {
+            if (
+                value === undefined ||
+                key === "deviceId" ||
+                key === "measuredAt"
+            ) continue;
 
-        addField(data.temperature, "Temperature");
-        addField(data.humidity, "Humidity");
+            if (typeof value !== "number") continue;
 
+            const formattedKey =
+                key.charAt(0).toUpperCase() + key.slice(1);
+
+            addField(value, formattedKey);
+        }
+        
         // ----------------------------- 
         //      HOURLY Aggregation 
         // -----------------------------
@@ -132,9 +127,9 @@ worker.on("completed", (job) => {
 });
 
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received...");
-  await worker.close();
-  process.exit(0);
+    console.log("SIGTERM received...");
+    await worker.close();
+    process.exit(0);
 });
 
 worker.on("failed", (job, err) => {

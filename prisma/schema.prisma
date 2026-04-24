@@ -250,6 +250,8 @@ model DeviceModel {
   manufacturer String
   isActive     Boolean @default(true)
 
+  parameters Json?
+
   pricingPlans PricingPlan[]
 
   devices Device[]

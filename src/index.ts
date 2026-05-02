@@ -51,7 +51,7 @@ const worker = new Worker(
 
             addField(value, formattedKey);
         }
-        
+
         // ----------------------------- 
         //      HOURLY Aggregation 
         // -----------------------------
@@ -123,7 +123,12 @@ const worker = new Worker(
 );
 
 worker.on("completed", (job) => {
-    console.log(`✅ Job completed: ${job.id}`);
+    if (job.finishedOn && job.processedOn) {
+        const duration = job.finishedOn - job.processedOn;
+        console.log(`Job ${job.id} took ${duration} ms`);
+    } else {
+        console.warn(`Timing info missing for job ${job.id}`);
+    }
 });
 
 process.on("SIGTERM", async () => {

@@ -142,6 +142,16 @@ enum MonitorStatus {
   DELETED
 }
 
+enum AdminStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+  SUSPENDED
+  PENDING
+  REJECTED
+  DELETED
+}
+
 enum MonitorTag {
   PCB
   MUNICIPALITY
@@ -152,12 +162,12 @@ enum MonitorTag {
 enum AdminRole {
   ADMIN
   MODERATOR
+  VENDOR
 }
 
 //////////////////////////////////////////////////////
-// USER & ADMIN & Monitor &  Moderataor
+// USER & ADMIN & Monitor &  Moderataor & Vendor
 //////////////////////////////////////////////////////
-
 model User {
   id            String       @id @default(auto()) @map("_id") @db.ObjectId
   name          String
@@ -215,12 +225,20 @@ model Address {
 }
 
 model Admin {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  email     String    @unique
-  password  String
-  role      AdminRole @default(MODERATOR)
-  createdAt DateTime  @default(now())
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  phoneNumber String?
+  email       String  @unique
+  address     String?
+  password    String
+
+  role   AdminRole   @default(MODERATOR)
+  status AdminStatus @default(PENDING)
+
+  gstNumber      String?
+  gstCertificate String?
+
+  createdAt DateTime @default(now())
 
   calibrations Calibration[]
 }
@@ -283,6 +301,9 @@ model Device {
   assignedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  createdByRole AdminRole @default(ADMIN)
+  createdById   String?   @db.ObjectId
 
   monitors MonitorDevice[]
 

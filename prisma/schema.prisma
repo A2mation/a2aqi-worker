@@ -152,6 +152,13 @@ enum AdminStatus {
   DELETED
 }
 
+enum Status {
+  APPROVED
+  PENDING
+  REJECTED
+  BANNED
+}
+
 enum MonitorTag {
   PCB
   MUNICIPALITY
@@ -182,10 +189,12 @@ model User {
   organizationName String?
   gstNumber        String?
 
-  comments  Comment[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  devices   Device[]
+  comments Comment[]
+  devices  Device[]
+
+  creatorId String? @db.ObjectId
+
+  status Status @default(APPROVED)
 
   billingAddressId String?   @db.ObjectId
   billingAddress   Address?  @relation("PrimaryBillingAddress", fields: [billingAddressId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -196,6 +205,11 @@ model User {
   couponRedemptions   CouponRedemption[]
   exportLogs          ExportLog[]
   invoices            Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorId])
 }
 
 model Address {
@@ -295,6 +309,7 @@ model Device {
   user   User?   @relation(fields: [userId], references: [id])
 
   status DeviceStatus @default(UNASSIGNED)
+  state  Status       @default(APPROVED)
 
   modelId String      @db.ObjectId
   model   DeviceModel @relation(fields: [modelId], references: [id])
